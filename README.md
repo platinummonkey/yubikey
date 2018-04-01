@@ -127,8 +127,6 @@ About 2-3 hours.
 
     5. Commit passphrase to memory and / or offline storage.
 
-    6. It might be much easier if we [generate the keys on the Yubikey itself](https://www.yubico.com/support/knowledge-base/categories/articles/use-yubikey-openpgp/#generateopenpgp), and then export a backup. Upside: easier. Downside: key generation on hardware can be prone to bugs (see [the RoCA vulnerability](https://en.wikipedia.org/wiki/ROCA_vulnerability)). Either way, I STRONGLY recommend making an offline backup of your private keys (Steps 14-16).] We should make this the default for its ease of use, unless you are importing existing keys.
-
 8. **Cache the key ID (for convenience).**
 
     1. [https://github.com/drduh/YubiKey-Guide/tree/ed1c2fdfa6300bdd6143d7e1877749f2f2fcab8e#save-key-id](https://github.com/drduh/YubiKey-Guide/tree/ed1c2fdfa6300bdd6143d7e1877749f2f2fcab8e#save-key-id)
@@ -285,7 +283,9 @@ About 2-3 hours.
 
     1. Configure `gpg-agent` as in Table 3.
 
-    2. Add the lines in Table 4 to your `bash` profile.
+    2. Add the lines in Table 4a to your `bash` profile.
+
+    3. Add the lines in Table 4b to the bottom of your `bashrc` or `zshrc`.
 
 <blockquote>
 
@@ -307,7 +307,39 @@ About 2-3 hours.
 
 </blockquote>
 
-**Table 4**: `~/.bash_profile`.
+**Table 4a**: `~/.bash_profile`.
+
+<blockquote>
+
+    export SSH_ENV="${HOME}/.ssh/environment"
+
+    start_ssh_agent() {
+        echo "Initialising new SSH agent..."
+        ssh-agent -s | sed 's/^echo/#echo/' > ${SSH_ENV}
+        echo succeeded
+        chmod 600 ${SSH_ENV}
+        . ${SSH_ENV} > /dev/null
+        ssh-add -k;
+    }
+
+    # Source SSH settings, if applicable
+    load_ssh_session() {
+        if [ -f "${SSH_ENV}" ]; then
+            . ${SSH_ENV} > /dev/null
+            #ps ${SSH_AGENT_PID} doesn't work under cywgin
+            ps aux ${SSH_AGENT_PID} | grep 'ssh-agent -s$' > /dev/null || {
+                start_ssh_agent;
+            }
+        else
+            start_ssh_agent;
+        fi
+    }
+
+    load_ssh_session
+
+</blockquote>
+
+**Table 4b**: `~/.bashrc`.
 
 23. **Test the keys.**
 
